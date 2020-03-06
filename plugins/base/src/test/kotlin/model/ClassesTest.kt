@@ -4,6 +4,7 @@ import org.jetbrains.dokka.model.*
 import org.jetbrains.dokka.model.KotlinModifier.*
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import utils.AbstractModelTest
 import utils.assertNotNull
 import utils.name
@@ -279,6 +280,20 @@ class ClassesTest : AbstractModelTest("/src/main/kotlin/classes/Test.kt", "class
                     }
                 }
             }
+        }
+    }
+
+    @Test
+    fun unresolvedType() {
+        assertThrows<IllegalStateException> {
+            inlineModelTest(
+                """
+                |class C {
+                |   val t: Afsfasf? = null 
+                |}
+            """.trimIndent()
+            )
+            {}
         }
     }
 
