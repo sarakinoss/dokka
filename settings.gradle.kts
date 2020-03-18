@@ -9,7 +9,7 @@ include("runners:maven-plugin")
 include("plugins:base")
 include("plugins:mathjax")
 include("plugins:kotlin-as-java")
-//include("plugins:javadoc")
+include("plugins:javadoc")
 include("integration-tests:gradle-integration-tests")
 
 pluginManagement {
