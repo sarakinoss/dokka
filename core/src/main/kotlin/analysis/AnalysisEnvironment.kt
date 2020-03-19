@@ -26,7 +26,6 @@ import org.jetbrains.kotlin.analyzer.common.CommonResolverForModuleFactory
 import org.jetbrains.kotlin.builtins.DefaultBuiltIns
 import org.jetbrains.kotlin.builtins.KotlinBuiltIns
 import org.jetbrains.kotlin.builtins.jvm.JvmBuiltIns
-import org.jetbrains.kotlin.caches.resolve.KotlinCacheService
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
 import org.jetbrains.kotlin.cli.common.config.ContentRoot
 import org.jetbrains.kotlin.cli.common.config.KotlinSourceRoot
@@ -49,7 +48,6 @@ import org.jetbrains.kotlin.descriptors.impl.ModuleDescriptorImpl
 import org.jetbrains.kotlin.ide.konan.NativeLibraryInfo
 import org.jetbrains.kotlin.ide.konan.analyzer.NativeResolverForModuleFactory
 import org.jetbrains.kotlin.ide.konan.decompiler.KotlinNativeLoadingMetadataCache
-import org.jetbrains.kotlin.idea.resolve.ResolutionFacade
 import org.jetbrains.kotlin.js.config.JSConfigurationKeys
 import org.jetbrains.kotlin.js.resolve.JsPlatformAnalyzerServices
 import org.jetbrains.kotlin.js.resolve.JsResolverForModuleFactory
@@ -72,11 +70,14 @@ import org.jetbrains.kotlin.resolve.jvm.JvmPlatformParameters
 import org.jetbrains.kotlin.resolve.jvm.JvmResolverForModuleFactory
 import org.jetbrains.kotlin.resolve.jvm.platform.JvmPlatformAnalyzerServices
 import org.jetbrains.kotlin.resolve.konan.platform.NativePlatformAnalyzerServices
-import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 import org.jetbrains.kotlin.resolve.lazy.ResolveSession
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.util.slicedMap.ReadOnlySlice
 import org.jetbrains.kotlin.util.slicedMap.WritableSlice
+import org.jetbrains.kotlin.idea.resolve.ResolutionFacade
+import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
+import org.jetbrains.kotlin.caches.resolve.KotlinCacheService
+import org.jetbrains.kotlin.load.java.structure.impl.classFiles.BinaryJavaClass
 import java.io.File
 
 const val JAR_SEPARATOR = "!/"
@@ -246,7 +247,7 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
     }
 
     private fun createNativeLibraryModuleInfo(libraryFile: File): LibraryModuleInfo {
-        val kotlinLibrary = createKotlinLibrary(org.jetbrains.kotlin.konan.file.File(libraryFile.absolutePath), false)
+        val kotlinLibrary = createKotlinLibrary(org.jetbrains.kotlin.konan.file.File(libraryFile.absolutePath), "",false)
         return object : LibraryModuleInfo {
             override val analyzerServices: PlatformDependentAnalyzerServices =
                 analysisPlatform.analyzerServices()
@@ -413,7 +414,7 @@ class AnalysisEnvironment(val messageCollector: MessageCollector, val analysisPl
                             addRoots(javaRoots, messageCollector)
                         }
                 }, {
-                    val file = (it as JavaClassImpl).psi.containingFile.virtualFile
+                    val file =  (it as? BinaryJavaClass)?.virtualFile ?: (it as JavaClassImpl).psi.containingFile.virtualFile
                     if (file in sourcesScope)
                         module
                     else
