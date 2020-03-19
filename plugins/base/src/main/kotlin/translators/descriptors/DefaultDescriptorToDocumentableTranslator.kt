@@ -454,6 +454,7 @@ private class DokkaDescriptorVisitor( // TODO: close this class and make it priv
     private fun KotlinType.fromPossiblyNullable(): Bound =
         toBound().let { if (isMarkedNullable) Nullable(it) else it }
 
+
     private fun DeclarationDescriptor.getDocumentation() = findKDoc().let {
         MarkdownParser(resolutionFacade, this).parseFromKDocTag(it)
     }
