@@ -167,7 +167,7 @@ interface Style
 interface Kind
 
 enum class ContentKind : Kind {
-    Comment, Constructors, Functions, Parameters, Properties, Classlikes, Packages, Symbol, Sample, Main, BriefComment, Empty
+    Comment, Constructors, Functions, Parameters, Properties, Classlikes, Packages, Symbol, Sample, Main, BriefComment, Empty, Source
 }
 
 enum class TextStyle : Style {
