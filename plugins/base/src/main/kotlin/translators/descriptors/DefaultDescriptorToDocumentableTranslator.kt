@@ -20,7 +20,6 @@ import org.jetbrains.kotlin.descriptors.Visibility
 import org.jetbrains.kotlin.descriptors.impl.DeclarationDescriptorVisitorEmptyBodies
 import org.jetbrains.kotlin.idea.kdoc.findKDoc
 import org.jetbrains.kotlin.psi.KtExpression
-import org.jetbrains.kotlin.psi.psiUtil.findDescendantOfType
 import org.jetbrains.kotlin.resolve.DescriptorUtils
 import org.jetbrains.kotlin.resolve.calls.components.isVararg
 import org.jetbrains.kotlin.resolve.calls.tasks.isDynamic
@@ -251,9 +250,14 @@ private class DokkaDescriptorVisitor( // TODO: close this class and make it priv
         )
     }
 
-    override fun visitFunctionDescriptor(descriptor: FunctionDescriptor, parent: DRIWithPlatformInfo): DFunction {
-        val dri = parent.dri.copy(callable = Callable.from(descriptor))
+    fun CallableMemberDescriptor.createDRI(wasOverriden: Boolean = false): Pair<DRI, Boolean> =
+        if (kind == CallableMemberDescriptor.Kind.DECLARATION || overriddenDescriptors.isEmpty())
+            Pair(DRI.from(this), wasOverriden)
+        else
+            overriddenDescriptors.first().createDRI(true)
 
+    override fun visitFunctionDescriptor(descriptor: FunctionDescriptor, parent: DRIWithPlatformInfo): DFunction {
+        val (dri, isInherited) = descriptor.createDRI()
         val actual = descriptor.createSources()
         return DFunction(
             dri = dri,
@@ -272,7 +276,10 @@ private class DokkaDescriptorVisitor( // TODO: close this class and make it priv
             modifier = descriptor.modifier(),
             type = descriptor.returnType!!.toBound(),
             platformData = listOf(platformData),
-            extra = PropertyContainer.withAll(descriptor.additionalExtras(), descriptor.getAnnotations())
+            extra = PropertyContainer.withAll(
+                InheritedFunction(isInherited),
+                descriptor.additionalExtras(), descriptor.getAnnotations()
+            )
         )
     }
 

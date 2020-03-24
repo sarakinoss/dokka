@@ -35,7 +35,7 @@ open class DefaultPageCreator(
             c.name.orEmpty(), contentForClasslike(c), setOf(c.dri), c,
             constructors.map(::pageForFunction) +
                     c.classlikes.map(::pageForClasslike) +
-                    c.functions.map(::pageForFunction)
+                    c.functions.filter { it.extra[InheritedFunction]?.isInherited != true }.map(::pageForFunction)
         )
     }
 
