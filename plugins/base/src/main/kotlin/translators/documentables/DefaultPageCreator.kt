@@ -25,7 +25,8 @@ open class DefaultPageCreator(
     open fun pageForPackage(p: DPackage): PackagePageNode = PackagePageNode(
         p.name, contentForPackage(p), setOf(p.dri), p,
         p.classlikes.map(::pageForClasslike) +
-                p.functions.map(::pageForFunction)
+                p.functions.map(::pageForFunction) +
+                p.typealiases.map(::pageForTypeAlias)
     )
 
     open fun pageForClasslike(c: DClasslike): ClasslikePageNode {
@@ -41,6 +42,8 @@ open class DefaultPageCreator(
 
     open fun pageForFunction(f: DFunction) = MemberPageNode(f.name, contentForFunction(f), setOf(f.dri), f)
 
+    open fun pageForTypeAlias(t: DTypeAlias) = MemberPageNode(t.name, contentForTypeAlias(t), setOf(t.dri), t)
+
     protected open fun contentForModule(m: DModule) = contentBuilder.contentFor(m) {
         header(1) { text(m.name) }
         block("Packages", 2, ContentKind.Packages, m.packages, m.platformData.toSet()) {
@@ -53,6 +56,15 @@ open class DefaultPageCreator(
     protected open fun contentForPackage(p: DPackage) = contentBuilder.contentFor(p) {
         header(1) { text("Package ${p.name}") }
         +contentForScope(p, p.dri, p.platformData)
+        block("Type aliases", 2, ContentKind.Classlikes, p.typealiases, p.platformData.toSet()) {
+            link(it.name, it.dri)
+            group {
+                +buildSignature(it)
+                group(kind = ContentKind.BriefComment) {
+                    text(it.briefDocumentation())
+                }
+            }
+        }
     }
 
     protected open fun contentForScope(
@@ -147,6 +159,12 @@ open class DefaultPageCreator(
         header(1) { text(f.name) }
         +buildSignature(f)
         +contentForComments(f)
+    }
+
+    protected open fun contentForTypeAlias(t: DTypeAlias) = contentBuilder.contentFor(t) {
+        header(1) { text(t.name) }
+        +buildSignature(t)
+        +contentForComments(t)
     }
 
     protected open fun TagWrapper.toHeaderString() = this.javaClass.toGenericString().split('.').last()
