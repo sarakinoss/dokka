@@ -1,8 +1,6 @@
 package matchers.content
 
-import org.jetbrains.dokka.pages.ContentComposite
-import org.jetbrains.dokka.pages.ContentGroup
-import org.jetbrains.dokka.pages.ContentNode
+import org.jetbrains.dokka.pages.*
 import org.jetbrains.dokka.test.tools.matchers.content.*
 import kotlin.reflect.KClass
 
@@ -52,6 +50,21 @@ fun ContentMatcherBuilder<*>.skipAllNotMatching() {
 // Convenience functions:
 fun ContentMatcherBuilder<*>.group(block: ContentMatcherBuilder<ContentGroup>.() -> Unit) {
     children += ContentMatcherBuilder(ContentGroup::class).apply(block).build()
+}
+
+fun ContentMatcherBuilder<*>.header(block: ContentMatcherBuilder<ContentHeader>.() -> Unit) {
+    children += ContentMatcherBuilder(ContentHeader::class).apply(block).build()
+}
+
+fun ContentMatcherBuilder<*>.p(block: ContentMatcherBuilder<ContentGroup>.() -> Unit) {
+    children += ContentMatcherBuilder(ContentGroup::class).apply{
+        block()
+        check { TextStyle.Paragraph in style }
+    }.build()
+}
+
+fun ContentMatcherBuilder<*>.link(block: ContentMatcherBuilder<ContentLink>.() -> Unit) {
+    children += ContentMatcherBuilder(ContentLink::class).apply(block).build()
 }
 
 fun ContentMatcherBuilder<*>.somewhere(block: ContentMatcherBuilder<*>.() -> Unit) {

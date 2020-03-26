@@ -5,17 +5,18 @@ import org.jetbrains.dokka.pages.ContentNode
 import org.jetbrains.dokka.pages.ContentText
 import kotlin.reflect.KClass
 import kotlin.reflect.full.cast
+import kotlin.reflect.full.safeCast
 
 sealed class MatcherElement
 
 class TextMatcher(val text: String) : MatcherElement()
 
-open class NodeMatcher<T: ContentNode>(
+open class NodeMatcher<T : ContentNode>(
     val kclass: KClass<T>,
     val assertions: T.() -> Unit = {}
-): MatcherElement() {
+) : MatcherElement() {
     open fun tryMatch(node: ContentNode) {
-        assertions(kclass.cast(node))
+        kclass.safeCast(node)?.apply(assertions) ?: throw AssertionError("Expected ${kclass.simpleName} but got: $node")
     }
 }
 
@@ -37,7 +38,9 @@ class CompositeMatcher<T : ContentComposite>(
 
     override fun tryMatch(node: ContentNode) {
         super.tryMatch(node)
-        kclass.cast(node).children.fold(normalizedChildren.pop()) { acc, n -> acc.next(n) }.finish()
+        kclass.cast(node).children.asSequence()
+            .filter { it !is ContentText || it.text.isNotBlank() }
+            .fold(normalizedChildren.pop()) { acc, n -> acc.next(n) }.finish()
     }
 }
 
@@ -50,11 +53,12 @@ private sealed class MatchWalkerState {
 
 private class TextMatcherState(val text: String, val rest: List<MatcherElement>) : MatchWalkerState() {
     override fun next(node: ContentNode): MatchWalkerState {
-        node as ContentText
+        node as? ContentText ?: throw AssertionError("Expected text: \"$text\" but got $node")
+        val trimmed = node.text.trim()
         return when {
-            text == node.text -> rest.pop()
-            text.startsWith(node.text) -> TextMatcherState(text.removePrefix(node.text), rest)
-            else -> throw AssertionError("Expected text: \"$text\", but found: \"${node.text}\"")
+            text == trimmed -> rest.pop()
+            text.startsWith(trimmed) -> TextMatcherState(text.removePrefix(node.text).trim(), rest)
+            else -> throw AssertionError("Expected text: \"$text\", but got: \"${node.text}\"")
         }
     }
 
@@ -90,7 +94,7 @@ private class SkippingMatcherState(
 }
 
 private fun List<MatcherElement>.pop(): MatchWalkerState = when (val head = firstOrNull()) {
-    is TextMatcher -> TextMatcherState(head.text, drop(1))
+    is TextMatcher -> TextMatcherState(head.text.trim(), drop(1))
     is NodeMatcher<*> -> NodeMatcherState(head, drop(1))
     is Anything -> SkippingMatcherState(drop(1).pop())
     null -> EmptyMatcherState
